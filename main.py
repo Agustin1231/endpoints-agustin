@@ -1,10 +1,15 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Any
 import subprocess
 import sys
 
+# Importar routers
+from endpoints.html_pdf import router as html_pdf_router
+
 app = FastAPI(title="Python Utils API")
+
+# Registrar routers
+app.include_router(html_pdf_router)
 
 # === Ejecutar código Python dinámico ===
 class CodeRequest(BaseModel):
@@ -40,7 +45,6 @@ def process_with_pandas(data: dict):
     """Ejemplo: procesar datos con pandas"""
     import pandas as pd
     df = pd.DataFrame(data.get("rows", []))
-    # Tu lógica aquí
     return {"columns": list(df.columns), "shape": df.shape}
 
 @app.get("/health")

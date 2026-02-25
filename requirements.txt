@@ -6,3 +6,4 @@ beautifulsoup4
 pillow
 openpyxl
 python-multipart
+weasyprint
