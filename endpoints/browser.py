@@ -229,10 +229,12 @@ async def get_hubspot_email_report(request: ReportRequest):
 class ExtractionRequest(BaseModel):
     session_id: str
     urls: list[str]
+    screenshot: bool = True
 
 class ExtractionResult(BaseModel):
     url: str
     html: Optional[str] = None
+    screenshot_base64: Optional[str] = None
     error: Optional[str] = None
 
 class ExtractionResponse(BaseModel):
@@ -256,10 +258,47 @@ async def extract_hubspot_html(request: ExtractionRequest):
     for url in request.urls:
         try:
             # Navegar a la URL
-            await page.goto(url, wait_until="networkidle", timeout=30000)
+            await page.goto(url, wait_until="networkidle", timeout=45000)
+            await asyncio.sleep(5) # Tiempo extra para carga de gráficos
+            
             # Extraer HTML
             html_content = await page.content()
-            results.append(ExtractionResult(url=url, html=html_content))
+            
+            screenshot_b64 = None
+            if request.screenshot:
+                # Intentar encontrar la sección "Interacción a lo largo del tiempo"
+                # Hacemos scroll progresivo
+                chart_selector = 'text="Interacción a lo largo del tiempo"'
+                found = False
+                for _ in range(6): # Hasta 6 scrolls
+                    try:
+                        element = await page.wait_for_selector(chart_selector, timeout=2000)
+                        if element:
+                            await element.scroll_into_view_if_needed()
+                            await asyncio.sleep(2) # Esperar a que el gráfico se renderice tras scroll
+                            found = True
+                            break
+                    except Exception:
+                        await page.mouse.wheel(0, 800)
+                        await asyncio.sleep(1)
+                
+                # Tomar captura (del elemento si se encontró, o del viewport actual)
+                if found:
+                    # Intentamos capturar el contenedor del gráfico (padre o abuelo de la sección de texto)
+                    # Usualmente en HubSpot estos están en contenedores con clases específicas, 
+                    # pero usaremos el viewport centrado para asegurar que se vea.
+                    png_bytes = await page.screenshot()
+                else:
+                    # Si no se encontró el texto, tomamos screenshot de donde quedó
+                    png_bytes = await page.screenshot()
+                
+                screenshot_b64 = base64.b64encode(png_bytes).decode("utf-8")
+
+            results.append(ExtractionResult(
+                url=url, 
+                html=html_content, 
+                screenshot_base64=screenshot_b64
+            ))
         except Exception as e:
             results.append(ExtractionResult(url=url, error=str(e)))
             
