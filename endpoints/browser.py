@@ -226,6 +226,48 @@ async def get_hubspot_email_report(request: ReportRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo reporte: {str(e)}")
 
+class ExtractionRequest(BaseModel):
+    session_id: str
+    urls: list[str]
+
+class ExtractionResult(BaseModel):
+    url: str
+    html: Optional[str] = None
+    error: Optional[str] = None
+
+class ExtractionResponse(BaseModel):
+    session_id: str
+    results: list[ExtractionResult]
+
+@router.post("/hubspot/report/extract-html", response_model=ExtractionResponse)
+async def extract_hubspot_html(request: ExtractionRequest):
+    """
+    Nuevo endpoint optimizado: recibe una lista de URLs y devuelve el HTML de cada una
+    usando la sesión activa.
+    """
+    if request.session_id not in manager.sessions:
+        raise HTTPException(status_code=404, detail="Sesión no encontrada o ya cerrada")
+        
+    session_data = manager.sessions[request.session_id]
+    page = session_data["page"]
+    
+    results = []
+    
+    for url in request.urls:
+        try:
+            # Navegar a la URL
+            await page.goto(url, wait_until="networkidle", timeout=30000)
+            # Extraer HTML
+            html_content = await page.content()
+            results.append(ExtractionResult(url=url, html=html_content))
+        except Exception as e:
+            results.append(ExtractionResult(url=url, error=str(e)))
+            
+    return ExtractionResponse(
+        session_id=request.session_id,
+        results=results
+    )
+
 class NavigateRequest(BaseModel):
     url: str
     wait_until: str = "networkidle"
