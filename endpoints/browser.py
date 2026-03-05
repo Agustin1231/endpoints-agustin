@@ -152,6 +152,28 @@ async def submit_hubspot_code(request: SubmitCodeRequest):
         raise HTTPException(status_code=500, detail=f"Error al enviar código: {str(e)}")
 
 
+class LogoutRequest(BaseModel):
+    session_id: str
+
+@router.post("/hubspot/login/logout")
+async def logout_hubspot(request: LogoutRequest):
+    """
+    Cierra la sesión del navegador y limpia el manager.
+    """
+    if request.session_id not in manager.sessions:
+        raise HTTPException(status_code=404, detail="Sesión no encontrada o ya cerrada")
+        
+    session_data = manager.sessions[request.session_id]
+    context = session_data["context"]
+    
+    try:
+        await context.close()
+        del manager.sessions[request.session_id]
+        return {"status": "success", "message": f"Sesión {request.session_id} cerrada correctamente."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al cerrar sesión: {str(e)}")
+
+
 class ReportRequest(BaseModel):
     session_id: str
     url: str
@@ -277,7 +299,7 @@ async def extract_hubspot_html(request: ExtractionRequest):
                             await element.scroll_into_view_if_needed()
                             await asyncio.sleep(1)
                             # Scroll adicional para centrar el gráfico
-                            await page.mouse.wheel(0, 400)
+                            await page.mouse.wheel(0, 200)
                             await asyncio.sleep(2) # Esperar a que el gráfico se renderice tras scroll
                             found = True
                             break
