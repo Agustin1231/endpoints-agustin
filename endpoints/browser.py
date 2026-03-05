@@ -275,6 +275,9 @@ async def extract_hubspot_html(request: ExtractionRequest):
                         element = await page.wait_for_selector(chart_selector, timeout=2000)
                         if element:
                             await element.scroll_into_view_if_needed()
+                            await asyncio.sleep(1)
+                            # Scroll adicional para centrar el gráfico
+                            await page.mouse.wheel(0, 400)
                             await asyncio.sleep(2) # Esperar a que el gráfico se renderice tras scroll
                             found = True
                             break
