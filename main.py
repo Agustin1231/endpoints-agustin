@@ -6,12 +6,14 @@ import sys
 # Importar routers
 from endpoints.html_pdf import router as html_pdf_router
 from endpoints.browser import router as browser_router
+from endpoints.pdf_tools import router as pdf_tools_router
 
 app = FastAPI(title="Python Utils API")
 
 # Registrar routers
 app.include_router(html_pdf_router)
 app.include_router(browser_router)
+app.include_router(pdf_tools_router)
 
 # === Ejecutar código Python dinámico ===
 class CodeRequest(BaseModel):

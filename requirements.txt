@@ -7,3 +7,4 @@ pillow
 openpyxl
 python-multipart
 playwright
+pypdf
