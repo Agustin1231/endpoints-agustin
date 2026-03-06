@@ -296,12 +296,13 @@ async def extract_hubspot_html(request: ExtractionRequest):
                     try:
                         element = await page.wait_for_selector(chart_selector, timeout=2000)
                         if element:
-                            await element.scroll_into_view_if_needed()
+                            # Alineamos el elemento al inicio (parte superior) del viewport
+                            await element.evaluate("e => e.scrollIntoView({ block: 'start' })")
                             await asyncio.sleep(1)
-                            # Scroll adicional para que el título quede arriba y el gráfico se vea completo
-                            # Ajustamos a un valor que suela centrar este reporte específico
-                            await page.mouse.wheel(0, -100) 
-                            await asyncio.sleep(2) # Esperar renderizado
+                            # Scroll hacia arriba para compensar la barra de navegación fija de HubSpot
+                            # Esto empuja el elemento "hacia abajo" desde el borde superior absoluto
+                            await page.mouse.wheel(0, -150) 
+                            await asyncio.sleep(2) # Esperar renderizado completo
                             found = True
                             break
                     except Exception:
