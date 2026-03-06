@@ -290,21 +290,22 @@ async def extract_hubspot_html(request: ExtractionRequest):
             if request.screenshot:
                 # Intentar encontrar la sección "Interacción a lo largo del tiempo"
                 # Hacemos scroll progresivo
-                chart_selector = 'text="Interacción a lo largo del tiempo"'
+                chart_selector = 'text="Tiempo empleado en leer el correo"'
                 found = False
-                for _ in range(6): # Hasta 6 scrolls
+                for _ in range(8): # Aumentamos a 8 scrolls para asegurar alcance
                     try:
                         element = await page.wait_for_selector(chart_selector, timeout=2000)
                         if element:
                             await element.scroll_into_view_if_needed()
                             await asyncio.sleep(1)
-                            # Scroll adicional para centrar el gráfico
-                            await page.mouse.wheel(0, 200)
-                            await asyncio.sleep(2) # Esperar a que el gráfico se renderice tras scroll
+                            # Scroll adicional para que el título quede arriba y el gráfico se vea completo
+                            # Ajustamos a un valor que suela centrar este reporte específico
+                            await page.mouse.wheel(0, -100) 
+                            await asyncio.sleep(2) # Esperar renderizado
                             found = True
                             break
                     except Exception:
-                        await page.mouse.wheel(0, 800)
+                        await page.mouse.wheel(0, 700)
                         await asyncio.sleep(1)
                 
                 # Tomar captura (del elemento si se encontró, o del viewport actual)
